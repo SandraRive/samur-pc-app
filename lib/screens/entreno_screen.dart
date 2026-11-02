@@ -21,6 +21,9 @@ import 'ordena_screen.dart';
 import 'parecidos_screen.dart';
 import 'tarjetas_screen.dart';
 import 'trampa_screen.dart';
+import 'casos_screen.dart';
+import 'codigo_screen.dart';
+import 'triaje_screen.dart';
 
 class EntrenoScreen extends StatelessWidget {
   const EntrenoScreen({super.key});
@@ -99,6 +102,18 @@ class EntrenoScreen extends StatelessWidget {
         Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => TrampaScreen(color: j.color)));
+      case 'casos':
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => CasosScreen(color: j.color)));
+      case 'triaje':
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => TriajeScreen(color: j.color)));
+      case 'codigo':
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => CodigoScreen(color: j.color)));
     }
   }
 

@@ -201,22 +201,8 @@ const juegos = <Juego>[
 ];
 
 // Los que ya funcionan en la app (iremos añadiendo en cada ronda)
-const juegosListos = {
-  'tests',
-  'examen',
-  'fallos',
-  'supervivencia',
-  'verdadero-falso',
-  'escribe',
-  'simulacro',
-  'parejas',
-  'unir',
-  'ordena',
-  'clasifica',
-  'tarjetas',
-  'parecidos',
-  'trampa',
-};
+// ¡Todos los juegos del Entreno ya funcionan! 🎉
+final juegosListos = {for (final j in juegos) j.id};
 
 // ==================== DATOS DEL ENTRENO (entreno.json) ====================
 
@@ -249,7 +235,13 @@ const _iconosMazo = <String, IconData>{
   'wind': LucideIcons.wind,
   'car': LucideIcons.car,
   'brain': LucideIcons.brain,
+  'zap': LucideIcons.zap, // 👈 1a: esta línea nueva
 };
+
+// 👇 1b: esta función, justo debajo del };
+// Icono de tu web por su nombre (para mazos y casos clínicos)
+IconData iconoEntreno(String nombre) =>
+    _iconosMazo[nombre] ?? LucideIcons.layers;
 
 // Una carta: un término y su significado (clave → significado, Killip I → …)
 class Carta {
