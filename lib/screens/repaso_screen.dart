@@ -9,6 +9,7 @@ import '../data/tests.dart';
 import '../theme/app_theme.dart';
 import '../theme/iconos.dart';
 import 'quiz_screen.dart';
+import '../data/retos.dart';
 
 const _verde = Color(0xFF2EE6A6);
 
@@ -31,6 +32,7 @@ void _jugar(
   List<Pregunta> preguntas,
   Color color, {
   int cuantas = 10,
+  bool barajar = true,
 }) {
   Navigator.of(context).push(
     MaterialPageRoute(
@@ -39,6 +41,7 @@ void _jugar(
         preguntas: preguntas,
         color: color,
         cuantas: cuantas,
+        barajar: barajar,
       ),
     ),
   );
@@ -118,6 +121,41 @@ class RepasoScreen extends StatelessWidget {
               _SeccionRango(color: c),
               const SizedBox(height: 30),
 
+              // ---------- RETOS RÁPIDOS ----------
+              Text(
+                'Retos rápidos',
+                style: GoogleFonts.unbounded(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Preguntas que se generan solas cada vez. Encadena racha y suma XP.',
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: AppColors.texto2,
+                ),
+              ),
+              const SizedBox(height: 14),
+              // De dos en dos, en filas
+              for (var i = 0; i < retos.length; i += 2)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: _TarjetaReto(reto: retos[i])),
+                        const SizedBox(width: 10),
+                        Expanded(child: _TarjetaReto(reto: retos[i + 1])),
+                      ],
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 30),
+
               // ---------- PONME A PRUEBA ----------
               Text(
                 'Ponme a prueba',
@@ -150,6 +188,12 @@ class RepasoScreen extends StatelessWidget {
                     _jugar(context, 'Simulacro general', todas, c, cuantas: 20),
               ),
               const SizedBox(height: 12),
+
+              // Exámenes oficiales
+              for (final x in examenes) ...[
+                _TarjetaExamen(examen: x),
+                const SizedBox(height: 12),
+              ],
 
               // Un desplegable por cada ámbito que tenga tests
               for (final a in ambitos)
@@ -793,6 +837,182 @@ class _BarraDominadas extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ==================== RETOS Y EXÁMENES ====================
+
+// Tarjeta de un reto rápido
+class _TarjetaReto extends StatelessWidget {
+  final Reto reto;
+
+  const _TarjetaReto({required this.reto});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = ambitos.firstWhere((a) => a.id == reto.colorDe).color;
+
+    return Material(
+      color: AppColors.panel,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => _jugar(
+          context,
+          reto.titulo,
+          preguntasDeReto(reto.id), // se generan nuevas cada vez
+          color,
+          cuantas: reto.cuantas,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.linea),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(reto.icono, size: 19, color: color),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                reto.titulo,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                reto.subtitulo,
+                style: const TextStyle(
+                  fontSize: 12,
+                  height: 1.3,
+                  color: AppColors.texto2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Tarjeta del examen oficial, con dos formas de jugarlo
+class _TarjetaExamen extends StatelessWidget {
+  final Examen examen;
+
+  const _TarjetaExamen({required this.examen});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = ambitos.firstWhere((a) => a.id == 'central').color;
+    final total = examen.preguntas.length;
+    final estiloBoton = OutlinedButton.styleFrom(
+      foregroundColor: color,
+      side: BorderSide(color: color.withValues(alpha: 0.5)),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.panel,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.45)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(LucideIcons.fileText, color: color, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Preguntas de exámenes oficiales',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      '${examen.titulo} · ${examen.subtitulo} · $total preguntas',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.texto2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _BarraDominadas(
+            dominadas: _dominadas(examen.preguntas),
+            total: total,
+            color: color,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _jugar(
+                    context,
+                    examen.titulo,
+                    examen.preguntas,
+                    color,
+                    cuantas: 20,
+                  ),
+                  icon: const Icon(LucideIcons.shuffle, size: 16),
+                  label: const Text('20 al azar'),
+                  style: estiloBoton,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _jugar(
+                    context,
+                    '${examen.titulo} · completo',
+                    examen.preguntas,
+                    color,
+                    cuantas: total,
+                    barajar: false, // en el orden del examen
+                  ),
+                  icon: const Icon(LucideIcons.listOrdered, size: 16),
+                  label: const Text('Completo'),
+                  style: estiloBoton,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

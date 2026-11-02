@@ -6,11 +6,13 @@ import 'manual.dart';
 
 // Una pregunta de test
 class Pregunta {
-  final String id;
+  final String id; // vacío = pregunta generada (no cuenta como dominada)
   final String enunciado;
   final String correcta;
-  final List<String> distractores; // las 3 respuestas incorrectas
+  final List<String> distractores; // las respuestas incorrectas
   final String explicacion;
+  final List<String>?
+  opcionesFijas; // si existe, las opciones van en este orden (exámenes)
 
   const Pregunta({
     required this.id,
@@ -18,6 +20,7 @@ class Pregunta {
     required this.correcta,
     required this.distractores,
     required this.explicacion,
+    this.opcionesFijas,
   });
 }
 
@@ -79,8 +82,9 @@ Test? testPara(Procedimiento p) {
     if (t.procId == p.id) return t;
   }
   for (final t in tests) {
-    if (t.procId == null && t.ambito == p.ambito && t.grupo == p.grupo)
+    if (t.procId == null && t.ambito == p.ambito && t.grupo == p.grupo) {
       return t;
+    }
   }
   return null;
 }

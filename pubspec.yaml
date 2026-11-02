@@ -58,3 +58,5 @@ flutter:
   assets:
     - assets/data/data.json
     - assets/data/quiz.json
+    - assets/data/ref.json
+    - assets/data/examenes.json

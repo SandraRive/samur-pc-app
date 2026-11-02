@@ -16,13 +16,15 @@ const _amarillo = Color(0xFFFFD23F);
 // Los estados posibles de una opción
 enum _Estado { normal, correcta, incorrecta, apagada }
 
-// Una pregunta lista para jugar, con sus 4 opciones ya barajadas
+// Una pregunta lista para jugar, con sus opciones (barajadas o en orden fijo)
 class _Ronda {
   final Pregunta pregunta;
   final List<String> opciones;
 
   _Ronda(this.pregunta)
-    : opciones = [pregunta.correcta, ...pregunta.distractores]..shuffle();
+    : opciones = pregunta.opcionesFijas != null
+          ? List.of(pregunta.opcionesFijas!) // examen: orden del papel
+          : ([pregunta.correcta, ...pregunta.distractores]..shuffle());
 
   int get indiceCorrecta => opciones.indexOf(pregunta.correcta);
 }
@@ -41,13 +43,15 @@ class QuizScreen extends StatefulWidget {
   final List<Pregunta> preguntas; // de dónde elegir
   final Color color;
   final int cuantas; // cuántas preguntas tiene la ronda
+  final bool barajar; // false = en orden (examen completo)
 
   const QuizScreen({
     super.key,
     required this.titulo,
     required this.preguntas,
     required this.color,
-    this.cuantas = 10, // si no se dice nada, 10
+    this.cuantas = 10,
+    this.barajar = true,
   });
 
   @override
@@ -67,18 +71,17 @@ class _QuizScreenState extends State<QuizScreen> {
 
   bool get _terminado => _i >= _rondas.length;
 
-  // initState se ejecuta UNA vez, al abrir la pantalla
   @override
   void initState() {
     super.initState();
-    _rondas = _elegir(
-      widget.preguntas,
-      widget.cuantas,
-    ).map(_Ronda.new).toList();
+    final elegidas = widget.barajar
+        ? _elegir(widget.preguntas, widget.cuantas)
+        : widget.preguntas.take(widget.cuantas).toList();
+    _rondas = elegidas.map(_Ronda.new).toList();
   }
 
   void _responder(int k) {
-    if (_elegida != null) return; // ya respondida
+    if (_elegida != null) return;
     final ronda = _rondas[_i];
     final acierto = k == ronda.indiceCorrecta;
 
@@ -88,14 +91,17 @@ class _QuizScreenState extends State<QuizScreen> {
         _aciertos++;
         _racha++;
         _mejorRacha = max(_mejorRacha, _racha);
-        if (progreso.marcarDominada(ronda.pregunta.id)) _nuevasDominadas++;
+        // Solo cuentan como dominadas las preguntas con id (no las generadas)
+        if (ronda.pregunta.id.isNotEmpty &&
+            progreso.marcarDominada(ronda.pregunta.id)) {
+          _nuevasDominadas++;
+        }
       } else {
         _racha = 0;
         _falladas.add(ronda.pregunta);
       }
     });
 
-    // 📳 Vibración: suave si aciertas, fuerte si fallas
     acierto ? HapticFeedback.lightImpact() : HapticFeedback.heavyImpact();
   }
 
@@ -104,7 +110,6 @@ class _QuizScreenState extends State<QuizScreen> {
       _i++;
       _elegida = null;
       if (_terminado) {
-        // +3 XP por acierto y +10 de bonus por pleno (reglas de tu web)
         _xpGanada = _aciertos * 3 + (_aciertos == _rondas.length ? 10 : 0);
       }
     });
@@ -139,7 +144,9 @@ class _QuizScreenState extends State<QuizScreen> {
           ),
         ),
       ),
-      body: _terminado ? _resultado() : _pregunta(),
+      body: _rondas.isEmpty
+          ? const Center(child: Text('No hay preguntas disponibles.'))
+          : (_terminado ? _resultado() : _pregunta()),
     );
   }
 
@@ -190,7 +197,7 @@ class _QuizScreenState extends State<QuizScreen> {
         ),
         const SizedBox(height: 24),
 
-        // Opciones A, B, C, D
+        // Opciones
         for (var k = 0; k < ronda.opciones.length; k++)
           _Opcion(
             letra: 'ABCD'[k],
@@ -224,35 +231,38 @@ class _QuizScreenState extends State<QuizScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: _amarillo.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _amarillo.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(LucideIcons.lightbulb, size: 18, color: _amarillo),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    ronda.pregunta.explicacion,
-                    style: const TextStyle(height: 1.45),
+          // La explicación solo si existe (las preguntas generadas no tienen)
+          if (ronda.pregunta.explicacion.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _amarillo.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _amarillo.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(LucideIcons.lightbulb, size: 18, color: _amarillo),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      ronda.pregunta.explicacion,
+                      style: const TextStyle(height: 1.45),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
               onPressed: _siguiente,
               icon: const Icon(LucideIcons.arrowRight, size: 18),
-              iconAlignment: IconAlignment.end, // la flecha a la derecha
+              iconAlignment: IconAlignment.end,
               label: Text(
                 _i + 1 < _rondas.length ? 'Siguiente' : 'Ver resultado',
               ),
@@ -321,8 +331,6 @@ class _QuizScreenState extends State<QuizScreen> {
           ),
         ),
         const SizedBox(height: 22),
-
-        // Tres datos: XP, mejor racha, nuevas dominadas
         Row(
           children: [
             Expanded(
@@ -355,7 +363,6 @@ class _QuizScreenState extends State<QuizScreen> {
         ),
         const SizedBox(height: 28),
 
-        // Lo que has fallado
         if (_falladas.isNotEmpty) ...[
           Text(
             'Para repasar',
@@ -405,27 +412,27 @@ class _QuizScreenState extends State<QuizScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    p.explicacion,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      height: 1.4,
-                      color: AppColors.texto2,
+                  if (p.explicacion.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      p.explicacion,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        height: 1.4,
+                        color: AppColors.texto2,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
           const SizedBox(height: 12),
         ],
 
-        // Botones
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
             onPressed: () {
-              // Sustituye esta pantalla por una ronda nueva
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(
                   builder: (_) => QuizScreen(
@@ -433,6 +440,7 @@ class _QuizScreenState extends State<QuizScreen> {
                     preguntas: widget.preguntas,
                     color: c,
                     cuantas: widget.cuantas,
+                    barajar: widget.barajar,
                   ),
                 ),
               );
@@ -482,7 +490,6 @@ class _Opcion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Colores según el estado: fondo, borde y letra
     final (fondo, borde, colorLetra) = switch (estado) {
       _Estado.correcta => (_verde.withValues(alpha: 0.15), _verde, _verde),
       _Estado.incorrecta => (_rojo.withValues(alpha: 0.15), _rojo, _rojo),
@@ -498,9 +505,7 @@ class _Opcion extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           child: InkWell(
             borderRadius: BorderRadius.circular(14),
-            onTap: estado == _Estado.normal
-                ? onTap
-                : null, // tras responder, ya no se puede tocar
+            onTap: estado == _Estado.normal ? onTap : null,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 250),
               padding: const EdgeInsets.all(14),
@@ -604,9 +609,9 @@ class _IndicadorRacha extends StatelessWidget {
     final enRacha = racha >= 3;
 
     return AnimatedScale(
-      scale: enRacha ? 1.15 : 1, // un poco más grande cuando hay racha
+      scale: enRacha ? 1.15 : 1,
       duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOutBack, // efecto "rebote"
+      curve: Curves.easeOutBack,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
