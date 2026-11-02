@@ -37,18 +37,24 @@ List<Pregunta> _elegir(List<Pregunta> todas, int n) {
 }
 
 class QuizScreen extends StatefulWidget {
-  final Test test;
+  final String titulo;
+  final List<Pregunta> preguntas; // de dónde elegir
   final Color color;
+  final int cuantas; // cuántas preguntas tiene la ronda
 
-  const QuizScreen({super.key, required this.test, required this.color});
+  const QuizScreen({
+    super.key,
+    required this.titulo,
+    required this.preguntas,
+    required this.color,
+    this.cuantas = 10, // si no se dice nada, 10
+  });
 
   @override
   State<QuizScreen> createState() => _QuizScreenState();
 }
 
 class _QuizScreenState extends State<QuizScreen> {
-  static const _porRonda = 10;
-
   late final List<_Ronda> _rondas;
   int _i = 0; // pregunta actual
   int? _elegida; // opción elegida (null = aún sin responder)
@@ -66,8 +72,8 @@ class _QuizScreenState extends State<QuizScreen> {
   void initState() {
     super.initState();
     _rondas = _elegir(
-      widget.test.preguntas,
-      _porRonda,
+      widget.preguntas,
+      widget.cuantas,
     ).map(_Ronda.new).toList();
   }
 
@@ -124,7 +130,7 @@ class _QuizScreenState extends State<QuizScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          widget.test.titulo,
+          widget.titulo,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 14,
@@ -422,7 +428,12 @@ class _QuizScreenState extends State<QuizScreen> {
               // Sustituye esta pantalla por una ronda nueva
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(
-                  builder: (_) => QuizScreen(test: widget.test, color: c),
+                  builder: (_) => QuizScreen(
+                    titulo: widget.titulo,
+                    preguntas: widget.preguntas,
+                    color: c,
+                    cuantas: widget.cuantas,
+                  ),
                 ),
               );
             },

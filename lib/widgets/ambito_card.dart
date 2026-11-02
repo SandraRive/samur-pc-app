@@ -4,6 +4,7 @@ import '../data/ambitos.dart';
 import '../theme/app_theme.dart';
 import '../screens/ambito_screen.dart';
 import '../screens/vademecum_screen.dart';
+import '../screens/repaso_screen.dart';
 
 class AmbitoCard extends StatelessWidget {
   final Ambito ambito;
@@ -24,9 +25,11 @@ class AmbitoCard extends StatelessWidget {
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => ambito.id == 'vademecum'
-                    ? VademecumScreen(ambito: ambito)
-                    : AmbitoScreen(ambito: ambito),
+                builder: (_) => switch (ambito.id) {
+                  'vademecum' => VademecumScreen(ambito: ambito),
+                  'repaso' => RepasoScreen(ambito: ambito),
+                  _ => AmbitoScreen(ambito: ambito),
+                },
               ),
             );
           },

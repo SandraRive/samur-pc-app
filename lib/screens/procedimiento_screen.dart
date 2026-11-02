@@ -218,7 +218,11 @@ class _BotonTest extends StatelessWidget {
         onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => QuizScreen(test: test, color: color),
+              builder: (_) => QuizScreen(
+                titulo: test.titulo,
+                preguntas: test.preguntas,
+                color: color,
+              ),
             ),
           );
         },
