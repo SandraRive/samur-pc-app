@@ -6,12 +6,14 @@ import 'data/manual.dart';
 import 'data/progreso.dart';
 import 'data/tests.dart';
 import 'data/retos.dart';
+import 'data/entreno.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // prepara Flutter antes de leer archivos
   await cargarManual(); // lee el JSON
   await cargarTests();
   await cargarReferencia();
+  await cargarEntreno();
   await progreso.cargar(); // recupera tu XP y lo estudiado
   runApp(const SamurApp()); // y ahora sí, arranca la app
 }

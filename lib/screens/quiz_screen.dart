@@ -44,6 +44,7 @@ class QuizScreen extends StatefulWidget {
   final Color color;
   final int cuantas; // cuántas preguntas tiene la ronda
   final bool barajar; // false = en orden (examen completo)
+  final bool esRetoDiario; // da +20 XP la primera vez cada día
 
   const QuizScreen({
     super.key,
@@ -52,6 +53,7 @@ class QuizScreen extends StatefulWidget {
     required this.color,
     this.cuantas = 10,
     this.barajar = true,
+    this.esRetoDiario = false,
   });
 
   @override
@@ -67,6 +69,7 @@ class _QuizScreenState extends State<QuizScreen> {
   int _mejorRacha = 0;
   int _nuevasDominadas = 0;
   int _xpGanada = 0;
+  int _bonusReto = 0;
   final List<Pregunta> _falladas = [];
 
   bool get _terminado => _i >= _rondas.length;
@@ -95,10 +98,12 @@ class _QuizScreenState extends State<QuizScreen> {
         if (ronda.pregunta.id.isNotEmpty &&
             progreso.marcarDominada(ronda.pregunta.id)) {
           _nuevasDominadas++;
+          progreso.quitarFallo(ronda.pregunta.id); // acertada → sale de fallos
         }
       } else {
         _racha = 0;
         _falladas.add(ronda.pregunta);
+        progreso.registrarFallo(ronda.pregunta); // fallada → a repasar
       }
     });
 
@@ -111,6 +116,12 @@ class _QuizScreenState extends State<QuizScreen> {
       _elegida = null;
       if (_terminado) {
         _xpGanada = _aciertos * 3 + (_aciertos == _rondas.length ? 10 : 0);
+        // Bonus del reto del día (solo la primera vez cada día)
+        if (widget.esRetoDiario && !progreso.retoHechoHoy) {
+          _bonusReto = 20;
+          _xpGanada += _bonusReto;
+          progreso.marcarRetoHecho();
+        }
       }
     });
     if (_terminado) progreso.sumarXP(_xpGanada);
@@ -330,6 +341,20 @@ class _QuizScreenState extends State<QuizScreen> {
             ),
           ),
         ),
+
+        if (_bonusReto > 0)
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Center(
+              child: Text(
+                '🔥 ¡Reto del día completado! +20 XP extra',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.naranja,
+                ),
+              ),
+            ),
+          ),
         const SizedBox(height: 22),
         Row(
           children: [
@@ -441,6 +466,7 @@ class _QuizScreenState extends State<QuizScreen> {
                     color: c,
                     cuantas: widget.cuantas,
                     barajar: widget.barajar,
+                    esRetoDiario: widget.esRetoDiario,
                   ),
                 ),
               );

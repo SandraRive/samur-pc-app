@@ -60,3 +60,4 @@ flutter:
     - assets/data/quiz.json
     - assets/data/ref.json
     - assets/data/examenes.json
+    - assets/data/entreno.json

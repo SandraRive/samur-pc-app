@@ -22,6 +22,26 @@ class Pregunta {
     required this.explicacion,
     this.opcionesFijas,
   });
+
+  // Convierte la pregunta en un mapa para guardarla como JSON
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'enunciado': enunciado,
+    'correcta': correcta,
+    'distractores': distractores,
+    'explicacion': explicacion,
+    if (opcionesFijas != null) 'opcionesFijas': opcionesFijas,
+  };
+
+  // Y al revés: reconstruye la pregunta desde el JSON guardado
+  factory Pregunta.fromJson(Map<String, dynamic> j) => Pregunta(
+    id: j['id'] as String,
+    enunciado: j['enunciado'] as String,
+    correcta: j['correcta'] as String,
+    distractores: (j['distractores'] as List).cast<String>(),
+    explicacion: j['explicacion'] as String,
+    opcionesFijas: (j['opcionesFijas'] as List?)?.cast<String>(),
+  );
 }
 
 // Un test: de un procedimiento concreto o de un bloque entero

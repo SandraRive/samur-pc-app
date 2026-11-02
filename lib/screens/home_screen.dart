@@ -5,6 +5,7 @@ import '../data/ambitos.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ambito_card.dart';
 import '../widgets/tarjeta_rango.dart';
+import '../widgets/banner_entreno.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -41,8 +42,8 @@ class HomeScreen extends StatelessWidget {
               style: TextStyle(color: AppColors.texto2),
             ),
             const SizedBox(height: 24),
-            const TarjetaRango(),
-            // Una tarjeta por cada ámbito
+            const TarjetaRango(), // Una tarjeta por cada ámbito
+            const BannerEntreno(),
             for (final a in ambitos) AmbitoCard(ambito: a),
           ],
         ),
