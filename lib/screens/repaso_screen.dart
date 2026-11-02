@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../theme/iconos.dart';
 import 'quiz_screen.dart';
 import '../data/retos.dart';
+import '../widgets/chuletas.dart';
 
 const _verde = Color(0xFF2EE6A6);
 
@@ -198,6 +199,27 @@ class RepasoScreen extends StatelessWidget {
               // Un desplegable por cada ámbito que tenga tests
               for (final a in ambitos)
                 if (tests.any((t) => t.ambito == a.id)) _AmbitoTests(ambito: a),
+
+              // ---------- CHULETAS ----------
+              const SizedBox(height: 30),
+              Text(
+                'Chuletas',
+                style: GoogleFonts.unbounded(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Resumen visual de lo que más cae. Algunas enlazan al procedimiento completo.',
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: AppColors.texto2,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Chuletas(),
             ],
           ),
         ),
