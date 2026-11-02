@@ -666,7 +666,7 @@ class _TarjetaGrande extends StatelessWidget {
 class AmbitoTests extends StatelessWidget {
   final Ambito ambito;
 
-  const AmbitoTests({required this.ambito});
+  const AmbitoTests({super.key, required this.ambito});
 
   @override
   Widget build(BuildContext context) {

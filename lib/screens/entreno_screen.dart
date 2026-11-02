@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
 
-import '../data/ambitos.dart';
 import '../data/entreno.dart';
 import '../data/progreso.dart';
 import '../theme/app_theme.dart';
 import 'quiz_screen.dart';
-import 'repaso_screen.dart';
 import 'escribe_screen.dart';
 import 'supervivencia_screen.dart';
 import 'verdadero_falso_screen.dart';

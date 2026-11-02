@@ -8,8 +8,13 @@ import 'data/tests.dart';
 import 'data/retos.dart';
 import 'data/entreno.dart';
 
+import 'package:firebase_core/firebase_core.dart';
+
+import 'firebase_options.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // prepara Flutter antes de leer archivos
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await cargarManual(); // lee el JSON
   await cargarTests();
   await cargarReferencia();

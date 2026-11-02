@@ -345,8 +345,9 @@ Pregunta preguntaDeMazo(Mazo m, Carta c) {
 // La mezcla de Supervivencia: 70 % tests, 15 % examen, 15 % mazos
 Pregunta preguntaMezcla() {
   final r = _azar.nextDouble();
-  if (r < 0.70)
+  if (r < 0.70) {
     return todasLasPreguntas[_azar.nextInt(todasLasPreguntas.length)];
+  }
   if (r < 0.85 && examenes.isNotEmpty) {
     final e = examenes.first.preguntas;
     return e[_azar.nextInt(e.length)];

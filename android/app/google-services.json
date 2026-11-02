@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "411652688516",
+    "project_id": "samur-pc-app",
+    "storage_bucket": "samur-pc-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:411652688516:android:0819188f3df673059110d1",
+        "android_client_info": {
+          "package_name": "com.sandrarive.samur_pc_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDLeYMrOPsG5HfAHj1oo8wIn9CN73Vc4lE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
