@@ -10,6 +10,7 @@ import 'manual.dart';
 import 'progreso.dart';
 import 'retos.dart';
 import 'tests.dart';
+import 'ambitos.dart';
 
 // Colores de tu Entreno
 const cCyan = Color(0xFF2EC4F1);
@@ -208,6 +209,13 @@ const juegosListos = {
   'verdadero-falso',
   'escribe',
   'simulacro',
+  'parejas',
+  'unir',
+  'ordena',
+  'clasifica',
+  'tarjetas',
+  'parecidos',
+  'trampa',
 };
 
 // ==================== DATOS DEL ENTRENO (entreno.json) ====================
@@ -393,4 +401,129 @@ List<Pregunta> preguntasRetoDelDia() {
     if (!elegidas.contains(p)) elegidas.add(p);
   }
   return (elegidas..shuffle()).take(10).toList();
+}
+
+// ==================== TARJETAS (LEITNER) ====================
+
+class Tarjeta {
+  final String id;
+  final String frente;
+  final String dorso;
+  final String explicacion;
+  final bool esClave; // las de mazos se ven en grande (10.1, P1…)
+
+  const Tarjeta({
+    required this.id,
+    required this.frente,
+    required this.dorso,
+    required this.explicacion,
+    required this.esClave,
+  });
+}
+
+// Un "mazo" de tarjetas: un mazo del entreno o un test del manual
+class FuenteTarjetas {
+  final String id;
+  final String titulo;
+  final IconData icono;
+  final Color color;
+  final bool deMazo;
+  final List<Tarjeta> tarjetas;
+
+  const FuenteTarjetas({
+    required this.id,
+    required this.titulo,
+    required this.icono,
+    required this.color,
+    required this.deMazo,
+    required this.tarjetas,
+  });
+}
+
+List<FuenteTarjetas>? _cacheFuentes;
+List<FuenteTarjetas> get fuentesTarjetas => _cacheFuentes ??= [
+  for (final m in mazos)
+    FuenteTarjetas(
+      id: 'd.${m.id}',
+      titulo: m.titulo,
+      icono: m.icono,
+      color: m.color,
+      deMazo: true,
+      tarjetas: [
+        for (final c in m.cartas)
+          Tarjeta(
+            id: c.id,
+            frente: c.termino,
+            dorso: c.significado,
+            explicacion: '',
+            esClave: true,
+          ),
+      ],
+    ),
+  for (final t in tests)
+    FuenteTarjetas(
+      id: 's.${t.id}',
+      titulo: t.titulo,
+      icono: ambitos.firstWhere((a) => a.id == t.ambito).icono,
+      color: ambitos.firstWhere((a) => a.id == t.ambito).color,
+      deMazo: false,
+      tarjetas: [
+        for (final p in t.preguntas)
+          Tarjeta(
+            id: p.id,
+            frente: p.enunciado,
+            dorso: p.correcta,
+            explicacion: p.explicacion,
+            esClave: false,
+          ),
+      ],
+    ),
+];
+
+// ==================== PARECIDOS QUE SE CONFUNDEN ====================
+
+List<Map<String, dynamic>> get gruposParecidos =>
+    (datosEntreno['parecidos'] as List).cast<Map<String, dynamic>>();
+
+// Genera preguntas de un grupo (o de todos mezclados, si grupo es null)
+List<Pregunta> preguntasParecidos(int? grupo) {
+  final indices = grupo == null
+      ? List.generate(gruposParecidos.length, (k) => k)
+      : [grupo];
+  final salida = <Pregunta>[];
+
+  for (final k in indices) {
+    final g = gruposParecidos[k];
+    final pares = [
+      for (final x in g['i'] as List) (x[0] as String, x[1] as String),
+    ];
+    final truco = '✨ Truco · ${g['t']}: ${g['tip']}';
+
+    for (final (a, b) in pares) {
+      final otros = pares.where((x) => x.$1 != a).toList()..shuffle();
+      salida.add(
+        _azar.nextBool()
+            ? Pregunta(
+                id: '',
+                enunciado: '¿A qué corresponde «$b»?',
+                correcta: a,
+                distractores: otros.map((x) => x.$1).take(3).toList(),
+                explicacion: truco,
+              )
+            : Pregunta(
+                id: '',
+                enunciado: '$a:',
+                correcta: b,
+                distractores: otros
+                    .map((x) => x.$2)
+                    .where((v) => v != b)
+                    .take(3)
+                    .toList(),
+                explicacion: truco,
+              ),
+      );
+    }
+  }
+  salida.shuffle();
+  return grupo == null ? salida.take(15).toList() : salida;
 }

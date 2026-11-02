@@ -13,6 +13,7 @@ class OpcionRespuesta extends StatelessWidget {
   final String texto;
   final EstadoOpcion estado;
   final VoidCallback onTap;
+  final String? porque; // explicación de la opción (se ve al responder)
 
   const OpcionRespuesta({
     super.key,
@@ -20,6 +21,7 @@ class OpcionRespuesta extends StatelessWidget {
     required this.texto,
     required this.estado,
     required this.onTap,
+    this.porque,
   });
 
   @override
@@ -67,9 +69,27 @@ class OpcionRespuesta extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      texto,
-                      style: const TextStyle(fontSize: 15, height: 1.35),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          texto,
+                          style: const TextStyle(fontSize: 15, height: 1.35),
+                        ),
+                        // El porqué solo aparece después de responder
+                        if (porque != null && estado != EstadoOpcion.normal)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              porque!,
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                height: 1.35,
+                                color: AppColors.texto2,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   if (estado == EstadoOpcion.correcta)

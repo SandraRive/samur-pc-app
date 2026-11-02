@@ -486,6 +486,7 @@ class _Claves extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GridView.count(
+      padding: EdgeInsets.zero,
       crossAxisCount: 2,
       shrinkWrap: true, // ocupa solo lo que necesita
       physics:

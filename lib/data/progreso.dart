@@ -43,6 +43,9 @@ class Progreso extends ChangeNotifier {
   String _retoDiario = ''; // último día que hiciste el reto
   final Map<String, int> _records = {}; // mejores puntuaciones por juego
   final List<Map<String, dynamic>> _simulacros = []; // historial de simulacros
+  final Map<String, List<int>> _cajas =
+      {}; // id tarjeta → [caja 1-5, cuándo vuelve (ms)]
+  static const diasPorCaja = [0, 1, 3, 7, 14];
   int _xp = 0;
 
   int get xp => _xp;
@@ -69,11 +72,52 @@ class Progreso extends ChangeNotifier {
     return true;
   }
 
+  // Para récords donde MENOS es mejor (intentos en Parejas)
+  bool guardarRecordMinimo(String juego, int valor) {
+    final antes = _records[juego];
+    if (antes != null && valor >= antes) return false;
+    _records[juego] = valor;
+    notifyListeners();
+    _guardar();
+    return true;
+  }
+
   List<Map<String, dynamic>> get simulacros => List.unmodifiable(_simulacros);
   // Guarda un simulacro en el historial (solo los últimos 20)
   void guardarSimulacro(Map<String, dynamic> s) {
     _simulacros.add(s);
     if (_simulacros.length > 20) _simulacros.removeAt(0);
+    notifyListeners();
+    _guardar();
+  }
+
+  // ---------- TARJETAS (LEITNER) ----------
+  int? cajaDe(String id) => _cajas[id]?[0];
+  bool empezada(String id) => _cajas.containsKey(id);
+
+  // ¿Le toca repaso? (las nuevas siempre tocan)
+  bool tocaHoy(String id) {
+    final c = _cajas[id];
+    return c == null || c[1] <= DateTime.now().millisecondsSinceEpoch;
+  }
+
+  // La sabías → sube de caja · No la sabías → vuelve a la caja 1
+  void valorarTarjeta(String id, bool sabia) {
+    final actual = _cajas[id]?[0] ?? 1;
+    final caja = sabia ? min(5, actual + 1) : 1;
+    final vuelve = DateTime.now().add(Duration(days: diasPorCaja[caja - 1]));
+    _cajas[id] = [caja, vuelve.millisecondsSinceEpoch];
+    notifyListeners();
+    _guardar();
+  }
+
+  // "Seguir con este mazo": adelanta las tarjetas de las cajas 1 y 2
+  void adelantar(Iterable<String> ids) {
+    final ahora = DateTime.now().millisecondsSinceEpoch;
+    for (final id in ids) {
+      final c = _cajas[id];
+      if (c != null && c[0] < 3 && c[1] > ahora) c[1] = 0;
+    }
     notifyListeners();
     _guardar();
   }
@@ -183,6 +227,9 @@ class Progreso extends ChangeNotifier {
     for (final s in datos['simulacros'] as List? ?? []) {
       _simulacros.add(Map<String, dynamic>.from(s as Map));
     }
+    (datos['cajas'] as Map<String, dynamic>? ?? {}).forEach((id, valor) {
+      _cajas[id] = List<int>.from(valor as List);
+    });
     for (final f in datos['fallos'] as List? ?? []) {
       final p = Pregunta.fromJson(f as Map<String, dynamic>);
       _fallos[p.id] = p;
@@ -201,6 +248,7 @@ class Progreso extends ChangeNotifier {
         'retoDiario': _retoDiario,
         'records': _records,
         'simulacros': _simulacros,
+        'cajas': _cajas,
         'fallos': [for (final p in _fallos.values) p.toJson()],
       }),
     );

@@ -14,6 +14,13 @@ import 'verdadero_falso_screen.dart';
 import 'simulacro_screen.dart';
 import '../data/retos.dart';
 import 'tests_bloque_screen.dart';
+import 'parejas_screen.dart';
+import 'unir_screen.dart';
+import 'clasifica_screen.dart';
+import 'ordena_screen.dart';
+import 'parecidos_screen.dart';
+import 'tarjetas_screen.dart';
+import 'trampa_screen.dart';
 
 class EntrenoScreen extends StatelessWidget {
   const EntrenoScreen({super.key});
@@ -64,6 +71,34 @@ class EntrenoScreen extends StatelessWidget {
             .push(MaterialPageRoute(builder: (_) => const SimulacroScreen()));
       case 'examen':
         _elegirModoExamen(context, j.color);
+      case 'parejas':
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => ParejasScreen(color: j.color)),
+        );
+      case 'unir':
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => UnirScreen(color: j.color)));
+      case 'ordena':
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => OrdenaScreen(color: j.color)));
+      case 'clasifica':
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => ClasificaScreen(color: j.color)),
+        );
+      case 'tarjetas':
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => TarjetasScreen(color: j.color)),
+        );
+      case 'parecidos':
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => ParecidosScreen(color: j.color)),
+        );
+      case 'trampa':
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => TrampaScreen(color: j.color)));
     }
   }
 
