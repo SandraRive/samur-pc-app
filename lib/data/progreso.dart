@@ -27,21 +27,22 @@ const rangos = <Rango>[
   Rango(2600, 'Directivo/a de Guardia', 'Máximo responsable de la guardia'),
 ];
 
-// Tu progreso: qué has estudiado y cuánta XP llevas.
-// Es un ChangeNotifier: cuando cambia, avisa a las pantallas que lo escuchan.
+// Tu progreso: qué has estudiado, qué preguntas dominas y cuánta XP llevas
 class Progreso extends ChangeNotifier {
   static const _clave = 'samurpc-v1'; // la misma clave que tu web
 
   final Set<String> _estudiados = {};
+  final Set<String> _dominadas = {}; // ids de preguntas acertadas alguna vez
   int _xp = 0;
 
   int get xp => _xp;
 
   bool estaEstudiado(String id) => _estudiados.contains(id);
 
-  // Cuántos de una lista de procedimientos están estudiados
   int cuantosEstudiados(Iterable<Procedimiento> procs) =>
       procs.where((p) => estaEstudiado(p.id)).length;
+
+  bool estaDominada(String idPregunta) => _dominadas.contains(idPregunta);
 
   // ---------- RANGOS ----------
   int get _indiceRango {
@@ -57,7 +58,6 @@ class Progreso extends ChangeNotifier {
   Rango? get siguienteRango =>
       _indiceRango + 1 < rangos.length ? rangos[_indiceRango + 1] : null;
 
-  // De 0.0 a 1.0: cuánto llevas del rango actual al siguiente
   double get porcentajeRango {
     final sig = siguienteRango;
     if (sig == null) return 1;
@@ -67,12 +67,12 @@ class Progreso extends ChangeNotifier {
   // ---------- ACCIONES ----------
   void alternarEstudiado(String id) {
     if (_estudiados.remove(id)) {
-      _xp = max(0, _xp - 10); // lo desmarcas → -10 XP
+      _xp = max(0, _xp - 10);
     } else {
-      _estudiados.add(id); // lo marcas → +10 XP
+      _estudiados.add(id);
       _xp += 10;
     }
-    notifyListeners(); // 📣 "¡He cambiado!"
+    notifyListeners();
     _guardar();
   }
 
@@ -82,22 +82,39 @@ class Progreso extends ChangeNotifier {
     _guardar();
   }
 
+  // Marca una pregunta como dominada. Devuelve true si es la primera vez
+  bool marcarDominada(String idPregunta) {
+    final esNueva = _dominadas.add(
+      idPregunta,
+    ); // add devuelve false si ya estaba
+    if (esNueva) {
+      notifyListeners();
+      _guardar();
+    }
+    return esNueva;
+  }
+
   // ---------- GUARDAR / CARGAR EN EL MÓVIL ----------
   Future<void> cargar() async {
     final prefs = await SharedPreferences.getInstance();
     final texto = prefs.getString(_clave);
-    if (texto == null) return; // primera vez: no hay nada guardado
+    if (texto == null) return;
 
     final datos = jsonDecode(texto) as Map<String, dynamic>;
     _xp = datos['xp'] as int? ?? 0;
     _estudiados.addAll((datos['estudiados'] as List? ?? []).cast<String>());
+    _dominadas.addAll((datos['dominadas'] as List? ?? []).cast<String>());
   }
 
   Future<void> _guardar() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       _clave,
-      jsonEncode({'xp': _xp, 'estudiados': _estudiados.toList()}),
+      jsonEncode({
+        'xp': _xp,
+        'estudiados': _estudiados.toList(),
+        'dominadas': _dominadas.toList(),
+      }),
     );
   }
 }

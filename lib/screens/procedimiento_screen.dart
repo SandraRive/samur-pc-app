@@ -5,6 +5,8 @@ import '../data/ambitos.dart';
 import '../data/manual.dart';
 import '../theme/app_theme.dart';
 import '../widgets/bloque_contenido.dart';
+import '../data/tests.dart';
+import 'quiz_screen.dart';
 
 import 'package:lucide_flutter/lucide_flutter.dart';
 
@@ -30,6 +32,7 @@ class ProcedimientoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = ambito.color;
+    final test = testPara(proc);
 
     return Scaffold(
       appBar: AppBar(
@@ -73,6 +76,10 @@ class ProcedimientoScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _BotonEstudiado(proc: proc),
+          if (test != null) ...[
+            const SizedBox(height: 10),
+            _BotonTest(test: test, color: c),
+          ],
           const Divider(color: AppColors.linea, height: 36),
 
           // El contenido, pieza a pieza
@@ -189,6 +196,45 @@ class _Pastilla extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Botón "Ponme a prueba": abre el test del procedimiento (o de su bloque)
+class _BotonTest extends StatelessWidget {
+  final Test test;
+  final Color color;
+
+  const _BotonTest({required this.test, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final esDelBloque = test.procId == null;
+
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => QuizScreen(test: test, color: color),
+            ),
+          );
+        },
+        icon: const Icon(LucideIcons.gamepad2, size: 18),
+        label: Text(
+          esDelBloque ? 'Ponme a prueba · ${test.titulo}' : 'Ponme a prueba',
+          overflow: TextOverflow.ellipsis,
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: color,
+          side: BorderSide(color: color.withValues(alpha: 0.5)),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       ),
     );
   }
