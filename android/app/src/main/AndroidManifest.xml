@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="samur_pc_app"
+        android:label="SAMUR·PC"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
