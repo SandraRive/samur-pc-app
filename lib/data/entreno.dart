@@ -207,6 +207,7 @@ const juegosListos = {
   'supervivencia',
   'verdadero-falso',
   'escribe',
+  'simulacro',
 };
 
 // ==================== DATOS DEL ENTRENO (entreno.json) ====================

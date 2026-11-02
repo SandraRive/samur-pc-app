@@ -11,6 +11,9 @@ import 'repaso_screen.dart';
 import 'escribe_screen.dart';
 import 'supervivencia_screen.dart';
 import 'verdadero_falso_screen.dart';
+import 'simulacro_screen.dart';
+import '../data/retos.dart';
+import 'tests_bloque_screen.dart';
 
 class EntrenoScreen extends StatelessWidget {
   const EntrenoScreen({super.key});
@@ -18,15 +21,9 @@ class EntrenoScreen extends StatelessWidget {
   // Qué hace cada juego al tocarlo
   void _abrir(BuildContext context, Juego j) {
     switch (j.id) {
-      case 'tests' || 'examen':
-        // Los tests y el examen ya viven en la Zona de repaso
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => RepasoScreen(
-              ambito: ambitos.firstWhere((a) => a.id == 'repaso'),
-            ),
-          ),
-        );
+      case 'tests':
+        Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const TestsBloqueScreen()));
       case 'fallos':
         final fallos = progreso.fallos;
         if (fallos.isEmpty) {
@@ -62,6 +59,11 @@ class EntrenoScreen extends StatelessWidget {
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => EscribeScreen(color: j.color)),
         );
+      case 'simulacro':
+        Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const SimulacroScreen()));
+      case 'examen':
+        _elegirModoExamen(context, j.color);
     }
   }
 
@@ -74,6 +76,92 @@ class EntrenoScreen extends StatelessWidget {
           color: cNaranja,
           barajar: false, // ya vienen elegidas y barajadas
           esRetoDiario: true,
+        ),
+      ),
+    );
+  }
+
+  // Panel para elegir cómo hacer el examen oficial
+  void _elegirModoExamen(BuildContext context, Color color) {
+    if (examenes.isEmpty) return;
+    final x = examenes.first;
+
+    void jugar(
+      BuildContext ctx, {
+      required int cuantas,
+      required bool barajar,
+    }) {
+      Navigator.of(ctx).pop(); // cierra el panel
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => QuizScreen(
+            titulo: x.titulo,
+            preguntas: x.preguntas,
+            color: color,
+            cuantas: cuantas,
+            barajar: barajar,
+          ),
+        ),
+      );
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.panel,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            mainAxisSize:
+                MainAxisSize.min, // el panel mide solo lo que necesita
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.linea,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                x.titulo,
+                style: GoogleFonts.unbounded(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${x.subtitulo} · ${x.preguntas.length} preguntas',
+                style: const TextStyle(fontSize: 13, color: AppColors.texto2),
+              ),
+              const SizedBox(height: 18),
+              _OpcionModo(
+                icono: LucideIcons.shuffle,
+                titulo: '20 al azar',
+                descripcion: 'Primero las que aún no dominas',
+                color: color,
+                onTap: () => jugar(ctx, cuantas: 20, barajar: true),
+              ),
+              const SizedBox(height: 10),
+              _OpcionModo(
+                icono: LucideIcons.listOrdered,
+                titulo: 'Examen completo',
+                descripcion:
+                    'Las ${x.preguntas.length} preguntas en el orden del examen',
+                color: color,
+                onTap: () =>
+                    jugar(ctx, cuantas: x.preguntas.length, barajar: false),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -449,6 +537,78 @@ class _TarjetaJuego extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Una opción grande dentro del panel del examen
+class _OpcionModo extends StatelessWidget {
+  final IconData icono;
+  final String titulo;
+  final String descripcion;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _OpcionModo({
+    required this.icono,
+    required this.titulo,
+    required this.descripcion,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.fondo,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: 0.45)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icono, color: color, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      titulo,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      descripcion,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.texto2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(LucideIcons.chevronRight, color: color),
+            ],
           ),
         ),
       ),

@@ -198,7 +198,7 @@ class RepasoScreen extends StatelessWidget {
 
               // Un desplegable por cada ámbito que tenga tests
               for (final a in ambitos)
-                if (tests.any((t) => t.ambito == a.id)) _AmbitoTests(ambito: a),
+                if (tests.any((t) => t.ambito == a.id)) AmbitoTests(ambito: a),
 
               // ---------- CHULETAS ----------
               const SizedBox(height: 30),
@@ -663,10 +663,10 @@ class _TarjetaGrande extends StatelessWidget {
 }
 
 // Desplegable de un ámbito con todos sus tests
-class _AmbitoTests extends StatelessWidget {
+class AmbitoTests extends StatelessWidget {
   final Ambito ambito;
 
-  const _AmbitoTests({required this.ambito});
+  const AmbitoTests({required this.ambito});
 
   @override
   Widget build(BuildContext context) {

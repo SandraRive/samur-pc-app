@@ -42,6 +42,7 @@ class Progreso extends ChangeNotifier {
   final Set<String> _dias = {}; // días en los que has ganado XP
   String _retoDiario = ''; // último día que hiciste el reto
   final Map<String, int> _records = {}; // mejores puntuaciones por juego
+  final List<Map<String, dynamic>> _simulacros = []; // historial de simulacros
   int _xp = 0;
 
   int get xp => _xp;
@@ -66,6 +67,15 @@ class Progreso extends ChangeNotifier {
     notifyListeners();
     _guardar();
     return true;
+  }
+
+  List<Map<String, dynamic>> get simulacros => List.unmodifiable(_simulacros);
+  // Guarda un simulacro en el historial (solo los últimos 20)
+  void guardarSimulacro(Map<String, dynamic> s) {
+    _simulacros.add(s);
+    if (_simulacros.length > 20) _simulacros.removeAt(0);
+    notifyListeners();
+    _guardar();
   }
 
   // ---------- RACHA DE DÍAS ----------
@@ -170,6 +180,9 @@ class Progreso extends ChangeNotifier {
     _records.addAll(
       (datos['records'] as Map<String, dynamic>? ?? {}).cast<String, int>(),
     );
+    for (final s in datos['simulacros'] as List? ?? []) {
+      _simulacros.add(Map<String, dynamic>.from(s as Map));
+    }
     for (final f in datos['fallos'] as List? ?? []) {
       final p = Pregunta.fromJson(f as Map<String, dynamic>);
       _fallos[p.id] = p;
@@ -187,6 +200,7 @@ class Progreso extends ChangeNotifier {
         'dias': _dias.toList(),
         'retoDiario': _retoDiario,
         'records': _records,
+        'simulacros': _simulacros,
         'fallos': [for (final p in _fallos.values) p.toJson()],
       }),
     );
