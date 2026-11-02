@@ -27,7 +27,7 @@ const rangos = <Rango>[
   Rango(2600, 'Directivo/a de Guardia', 'Máximo responsable de la guardia'),
 ];
 
-// "2026-11-02": la fecha de un día en texto, para guardarla
+// "2026-11-02": la fecha de un día en texto
 String claveDia(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
@@ -35,20 +35,23 @@ String get hoy => claveDia(DateTime.now());
 
 class Progreso extends ChangeNotifier {
   static const _clave = 'samurpc-v1';
+  static const diasPorCaja = [0, 1, 3, 7, 14];
 
   final Set<String> _estudiados = {};
   final Set<String> _dominadas = {};
-  final Map<String, Pregunta> _fallos = {}; // preguntas falladas pendientes
-  final Set<String> _dias = {}; // días en los que has ganado XP
-  String _retoDiario = ''; // último día que hiciste el reto
-  final Map<String, int> _records = {}; // mejores puntuaciones por juego
-  final List<Map<String, dynamic>> _simulacros = []; // historial de simulacros
+  final Map<String, Pregunta> _fallos = {};
+  final Set<String> _dias = {};
+  final Map<String, int> _records = {};
+  final List<Map<String, dynamic>> _simulacros = [];
   final Map<String, List<int>> _cajas =
       {}; // id tarjeta → [caja 1-5, cuándo vuelve (ms)]
-  static const diasPorCaja = [0, 1, 3, 7, 14];
+  String _retoDiario = '';
   int _xp = 0;
+  int _actualizado = 0; // 🆕 cuándo cambió por última vez (ms), para la nube
 
+  // ==================== CONSULTAS ====================
   int get xp => _xp;
+  int get actualizado => _actualizado;
 
   bool estaEstudiado(String id) => _estudiados.contains(id);
 
@@ -57,83 +60,28 @@ class Progreso extends ChangeNotifier {
 
   bool estaDominada(String idPregunta) => _dominadas.contains(idPregunta);
 
+  int get totalEstudiados => _estudiados.length;
+  int get totalDominadas => _dominadas.length;
+
   List<Pregunta> get fallos => _fallos.values.toList();
 
   bool get retoHechoHoy => _retoDiario == hoy;
 
   int record(String juego) => _records[juego] ?? 0;
 
-  // Guarda la puntuación si supera el récord. Devuelve true si es nuevo récord
-  bool guardarRecord(String juego, int puntos) {
-    if (puntos <= record(juego)) return false;
-    _records[juego] = puntos;
-    notifyListeners();
-    _guardar();
-    return true;
-  }
-
-  // Para récords donde MENOS es mejor (intentos en Parejas)
-  bool guardarRecordMinimo(String juego, int valor) {
-    final antes = _records[juego];
-    if (antes != null && valor >= antes) return false;
-    _records[juego] = valor;
-    notifyListeners();
-    _guardar();
-    return true;
-  }
-
   List<Map<String, dynamic>> get simulacros => List.unmodifiable(_simulacros);
-  // Guarda un simulacro en el historial (solo los últimos 20)
-  void guardarSimulacro(Map<String, dynamic> s) {
-    _simulacros.add(s);
-    if (_simulacros.length > 20) _simulacros.removeAt(0);
-    notifyListeners();
-    _guardar();
-  }
-
-  // ---------- TARJETAS (LEITNER) ----------
-  int? cajaDe(String id) => _cajas[id]?[0];
-  bool empezada(String id) => _cajas.containsKey(id);
-
-  // ¿Le toca repaso? (las nuevas siempre tocan)
-  bool tocaHoy(String id) {
-    final c = _cajas[id];
-    return c == null || c[1] <= DateTime.now().millisecondsSinceEpoch;
-  }
-
-  // La sabías → sube de caja · No la sabías → vuelve a la caja 1
-  void valorarTarjeta(String id, bool sabia) {
-    final actual = _cajas[id]?[0] ?? 1;
-    final caja = sabia ? min(5, actual + 1) : 1;
-    final vuelve = DateTime.now().add(Duration(days: diasPorCaja[caja - 1]));
-    _cajas[id] = [caja, vuelve.millisecondsSinceEpoch];
-    notifyListeners();
-    _guardar();
-  }
-
-  // "Seguir con este mazo": adelanta las tarjetas de las cajas 1 y 2
-  void adelantar(Iterable<String> ids) {
-    final ahora = DateTime.now().millisecondsSinceEpoch;
-    for (final id in ids) {
-      final c = _cajas[id];
-      if (c != null && c[0] < 3 && c[1] > ahora) c[1] = 0;
-    }
-    notifyListeners();
-    _guardar();
-  }
 
   // ---------- RACHA DE DÍAS ----------
-  // Cuenta hacia atrás los días seguidos con actividad (hoy o, si no, desde ayer)
   int get rachaDias {
     var d = DateTime.now();
     if (!_dias.contains(claveDia(d))) {
-      d = DateTime(d.year, d.month, d.day - 1); // ayer
+      d = DateTime(d.year, d.month, d.day - 1);
       if (!_dias.contains(claveDia(d))) return 0;
     }
     var n = 0;
     while (_dias.contains(claveDia(d))) {
       n++;
-      d = DateTime(d.year, d.month, d.day - 1); // un día antes
+      d = DateTime(d.year, d.month, d.day - 1);
     }
     return n;
   }
@@ -158,100 +106,171 @@ class Progreso extends ChangeNotifier {
     return ((_xp - rango.xp) / (sig.xp - rango.xp)).clamp(0.0, 1.0).toDouble();
   }
 
-  // ---------- ACCIONES ----------
+  // ---------- TARJETAS (LEITNER) ----------
+  int? cajaDe(String id) => _cajas[id]?[0];
+  bool empezada(String id) => _cajas.containsKey(id);
+
+  bool tocaHoy(String id) {
+    final c = _cajas[id];
+    return c == null || c[1] <= DateTime.now().millisecondsSinceEpoch;
+  }
+
+  // ==================== ACCIONES ====================
   void alternarEstudiado(String id) {
     if (_estudiados.remove(id)) {
       _xp = max(0, _xp - 10);
     } else {
       _estudiados.add(id);
       _xp += 10;
-      _dias.add(hoy); // cuenta para la racha
+      _dias.add(hoy);
     }
-    notifyListeners();
-    _guardar();
+    _cambio();
   }
 
   void sumarXP(int puntos) {
     _xp = max(0, _xp + puntos);
     if (puntos > 0) _dias.add(hoy);
-    notifyListeners();
-    _guardar();
+    _cambio();
   }
 
   bool marcarDominada(String idPregunta) {
     final esNueva = _dominadas.add(idPregunta);
-    if (esNueva) {
-      notifyListeners();
-      _guardar();
-    }
+    if (esNueva) _cambio();
     return esNueva;
   }
 
-  // Apunta una pregunta fallada (las generadas, sin id, no se guardan)
   void registrarFallo(Pregunta p) {
     if (p.id.isEmpty) return;
     _fallos[p.id] = p;
-    notifyListeners();
-    _guardar();
+    _cambio();
   }
 
-  // Al acertarla, sale de la lista de fallos
   void quitarFallo(String idPregunta) {
-    if (_fallos.remove(idPregunta) != null) {
-      notifyListeners();
-      _guardar();
-    }
+    if (_fallos.remove(idPregunta) != null) _cambio();
   }
 
   void marcarRetoHecho() {
     _retoDiario = hoy;
-    notifyListeners();
-    _guardar();
+    _cambio();
   }
 
-  // ---------- GUARDAR / CARGAR ----------
-  Future<void> cargar() async {
-    final prefs = await SharedPreferences.getInstance();
-    final texto = prefs.getString(_clave);
-    if (texto == null) return;
+  bool guardarRecord(String juego, int puntos) {
+    if (puntos <= record(juego)) return false;
+    _records[juego] = puntos;
+    _cambio();
+    return true;
+  }
 
-    final datos = jsonDecode(texto) as Map<String, dynamic>;
-    _xp = datos['xp'] as int? ?? 0;
-    _estudiados.addAll((datos['estudiados'] as List? ?? []).cast<String>());
-    _dominadas.addAll((datos['dominadas'] as List? ?? []).cast<String>());
-    _dias.addAll((datos['dias'] as List? ?? []).cast<String>());
+  bool guardarRecordMinimo(String juego, int valor) {
+    final antes = _records[juego];
+    if (antes != null && valor >= antes) return false;
+    _records[juego] = valor;
+    _cambio();
+    return true;
+  }
+
+  void guardarSimulacro(Map<String, dynamic> s) {
+    _simulacros.add(s);
+    if (_simulacros.length > 20) _simulacros.removeAt(0);
+    _cambio();
+  }
+
+  void valorarTarjeta(String id, bool sabia) {
+    final actual = _cajas[id]?[0] ?? 1;
+    final caja = sabia ? min(5, actual + 1) : 1;
+    final vuelve = DateTime.now().add(Duration(days: diasPorCaja[caja - 1]));
+    _cajas[id] = [caja, vuelve.millisecondsSinceEpoch];
+    _cambio();
+  }
+
+  void adelantar(Iterable<String> ids) {
+    final ahora = DateTime.now().millisecondsSinceEpoch;
+    for (final id in ids) {
+      final c = _cajas[id];
+      if (c != null && c[0] < 3 && c[1] > ahora) c[1] = 0;
+    }
+    _cambio();
+  }
+
+  // Todo cambio pasa por aquí: apunta la hora, avisa a las pantallas y guarda
+  void _cambio() {
+    _actualizado = DateTime.now().millisecondsSinceEpoch;
+    notifyListeners();
+    _guardarLocal();
+  }
+
+  // ==================== JSON (para el móvil y para la nube) ====================
+  Map<String, dynamic> aJson() => {
+    'xp': _xp,
+    'estudiados': _estudiados.toList(),
+    'dominadas': _dominadas.toList(),
+    'dias': _dias.toList(),
+    'retoDiario': _retoDiario,
+    'records': _records,
+    'simulacros': _simulacros,
+    'cajas': _cajas,
+    'fallos': [for (final p in _fallos.values) p.toJson()],
+    'actualizado': _actualizado,
+  };
+
+  // Rellena todo a partir de un JSON (vacía antes lo que hubiera)
+  void _leer(Map<String, dynamic> datos) {
+    _xp = (datos['xp'] as num?)?.toInt() ?? 0;
+    _actualizado = (datos['actualizado'] as num?)?.toInt() ?? 0;
     _retoDiario = datos['retoDiario'] as String? ?? '';
-    _records.addAll(
-      (datos['records'] as Map<String, dynamic>? ?? {}).cast<String, int>(),
-    );
+
+    _estudiados
+      ..clear()
+      ..addAll((datos['estudiados'] as List? ?? []).cast<String>());
+    _dominadas
+      ..clear()
+      ..addAll((datos['dominadas'] as List? ?? []).cast<String>());
+    _dias
+      ..clear()
+      ..addAll((datos['dias'] as List? ?? []).cast<String>());
+
+    _records.clear();
+    (datos['records'] as Map? ?? {}).forEach((k, v) {
+      _records[k as String] = (v as num).toInt();
+    });
+
+    _simulacros.clear();
     for (final s in datos['simulacros'] as List? ?? []) {
       _simulacros.add(Map<String, dynamic>.from(s as Map));
     }
-    (datos['cajas'] as Map<String, dynamic>? ?? {}).forEach((id, valor) {
-      _cajas[id] = List<int>.from(valor as List);
+
+    _cajas.clear();
+    (datos['cajas'] as Map? ?? {}).forEach((id, valor) {
+      _cajas[id as String] = [
+        for (final n in valor as List) (n as num).toInt(),
+      ];
     });
+
+    _fallos.clear();
     for (final f in datos['fallos'] as List? ?? []) {
-      final p = Pregunta.fromJson(f as Map<String, dynamic>);
+      final p = Pregunta.fromJson(Map<String, dynamic>.from(f as Map));
       _fallos[p.id] = p;
     }
   }
 
-  Future<void> _guardar() async {
+  // ==================== GUARDAR / CARGAR ====================
+  Future<void> cargar() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _clave,
-      jsonEncode({
-        'xp': _xp,
-        'estudiados': _estudiados.toList(),
-        'dominadas': _dominadas.toList(),
-        'dias': _dias.toList(),
-        'retoDiario': _retoDiario,
-        'records': _records,
-        'simulacros': _simulacros,
-        'cajas': _cajas,
-        'fallos': [for (final p in _fallos.values) p.toJson()],
-      }),
-    );
+    final texto = prefs.getString(_clave);
+    if (texto == null) return;
+    _leer(jsonDecode(texto) as Map<String, dynamic>);
+  }
+
+  // 🆕 Sustituye tu progreso por el que viene de la nube
+  void reemplazarCon(Map<String, dynamic> datos) {
+    _leer(datos);
+    notifyListeners();
+    _guardarLocal();
+  }
+
+  Future<void> _guardarLocal() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_clave, jsonEncode(aJson()));
   }
 }
 

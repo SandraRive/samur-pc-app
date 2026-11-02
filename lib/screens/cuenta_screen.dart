@@ -5,6 +5,8 @@ import 'package:lucide_flutter/lucide_flutter.dart';
 
 import '../data/entreno.dart';
 import '../theme/app_theme.dart';
+import '../data/nube.dart';
+import '../data/progreso.dart';
 
 class CuentaScreen extends StatelessWidget {
   const CuentaScreen({super.key});
@@ -317,7 +319,9 @@ class _Perfil extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.panel,
         title: const Text('¿Cerrar sesión?'),
-        content: const Text('Tu progreso seguirá guardado en este móvil.'),
+        content: const Text(
+          'Tu progreso seguirá guardado en este móvil.',
+        ), // 👈 esto vuelve a ser un texto
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -384,18 +388,9 @@ class _Perfil extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.panel,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.linea),
-          ),
-          child: const Text(
-            '🚧 En el siguiente paso, aquí verás la sincronización de tu progreso.',
-            style: TextStyle(height: 1.4, color: AppColors.texto2),
-          ),
-        ),
+
+        const _EstadoNube(), // 👈 AQUÍ va (donde estaba el aviso de 🚧)
+
         const SizedBox(height: 24),
         SizedBox(
           width: double.infinity,
@@ -414,6 +409,112 @@ class _Perfil extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// Tarjeta con el estado de la sincronización
+class _EstadoNube extends StatelessWidget {
+  const _EstadoNube();
+
+  @override
+  Widget build(BuildContext context) {
+    // Escucha a la nube Y al progreso a la vez
+    return ListenableBuilder(
+      listenable: Listenable.merge([nube, progreso]),
+      builder: (context, _) {
+        final (icono, color, texto) = switch (nube.estado) {
+          EstadoNube.sincronizando => (
+            LucideIcons.refreshCw,
+            cAmarillo,
+            'Sincronizando…',
+          ),
+          EstadoNube.alDia => (
+            LucideIcons.cloudCheck,
+            cVerde,
+            'Todo guardado en la nube',
+          ),
+          EstadoNube.error => (
+            LucideIcons.cloudOff,
+            cRojo,
+            'No se ha podido sincronizar',
+          ),
+          EstadoNube.desconectada => (
+            LucideIcons.cloudOff,
+            AppColors.texto2,
+            'Sin conexión con la nube',
+          ),
+        };
+        final hora = nube.ultimaSync;
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.panel,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: 0.5)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icono, color: color, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      texto,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: color,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (hora != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Última vez: ${hora.hour.toString().padLeft(2, '0')}:${hora.minute.toString().padLeft(2, '0')}',
+                  style: const TextStyle(fontSize: 12, color: AppColors.texto2),
+                ),
+              ],
+              if (nube.error != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  nube.error!,
+                  style: const TextStyle(fontSize: 11, color: AppColors.texto2),
+                ),
+              ],
+              const SizedBox(height: 12),
+              Text(
+                'Tu progreso: ${progreso.xp} XP · ${progreso.totalEstudiados} estudiados · '
+                '${progreso.totalDominadas} preguntas dominadas',
+                style: const TextStyle(fontSize: 12.5, height: 1.4),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: nube.estado == EstadoNube.sincronizando
+                      ? null
+                      : nube.sincronizar,
+                  icon: const Icon(LucideIcons.refreshCw, size: 16),
+                  label: const Text('Sincronizar ahora'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.texto,
+                    side: const BorderSide(color: AppColors.linea),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

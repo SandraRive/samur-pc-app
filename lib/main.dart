@@ -7,6 +7,7 @@ import 'data/progreso.dart';
 import 'data/tests.dart';
 import 'data/retos.dart';
 import 'data/entreno.dart';
+import 'data/nube.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 
@@ -20,6 +21,7 @@ Future<void> main() async {
   await cargarReferencia();
   await cargarEntreno();
   await progreso.cargar(); // recupera tu XP y lo estudiado
+  nube.iniciar(); // prepara la sincronización con Firestore
   runApp(const SamurApp()); // y ahora sí, arranca la app
 }
 
