@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'manual.dart';
 import 'tests.dart';
 
+import 'dart:typed_data';
+
 // Un rango de la guardia
 class Rango {
   final int xp;
@@ -48,10 +50,15 @@ class Progreso extends ChangeNotifier {
   String _retoDiario = '';
   int _xp = 0;
   int _actualizado = 0; // 🆕 cuándo cambió por última vez (ms), para la nube
+  String _alias = '';
+  String _foto = ''; // la foto convertida en texto (base64), para guardarla
+  Uint8List? _fotoBytes; // la misma foto, lista para mostrarla
 
   // ==================== CONSULTAS ====================
   int get xp => _xp;
   int get actualizado => _actualizado;
+  String get alias => _alias;
+  Uint8List? get foto => _fotoBytes;
 
   bool estaEstudiado(String id) => _estudiados.contains(id);
 
@@ -192,6 +199,48 @@ class Progreso extends ChangeNotifier {
     _cambio();
   }
 
+  // ---------- PERFIL ----------
+  void cambiarAlias(String nuevo) {
+    _alias = nuevo.trim();
+    _cambio();
+  }
+
+  void cambiarFoto(Uint8List? bytes) {
+    _fotoBytes = bytes;
+    _foto = bytes == null ? '' : base64Encode(bytes); // imagen → texto
+    _cambio();
+  }
+
+  // ---------- EMPEZAR DE CERO ----------
+  // Borra todo el progreso (pero no el alias ni la foto) y lo sube a la nube
+  void reiniciarProgreso() {
+    _vaciarProgreso();
+    _cambio();
+  }
+
+  // Al cerrar sesión: deja el móvil limpio para la siguiente cuenta
+  void vaciarAlCerrarSesion() {
+    _vaciarProgreso();
+    _alias = '';
+    _foto = '';
+    _fotoBytes = null;
+    _actualizado = 0; // así, al volver a entrar, ganará la versión de la nube
+    notifyListeners();
+    _guardarLocal();
+  }
+
+  void _vaciarProgreso() {
+    _xp = 0;
+    _retoDiario = '';
+    _estudiados.clear();
+    _dominadas.clear();
+    _dias.clear();
+    _records.clear();
+    _simulacros.clear();
+    _cajas.clear();
+    _fallos.clear();
+  }
+
   // Todo cambio pasa por aquí: apunta la hora, avisa a las pantallas y guarda
   void _cambio() {
     _actualizado = DateTime.now().millisecondsSinceEpoch;
@@ -211,6 +260,8 @@ class Progreso extends ChangeNotifier {
     'cajas': _cajas,
     'fallos': [for (final p in _fallos.values) p.toJson()],
     'actualizado': _actualizado,
+    'alias': _alias,
+    'foto': _foto,
   };
 
   // Rellena todo a partir de un JSON (vacía antes lo que hubiera)
@@ -218,7 +269,9 @@ class Progreso extends ChangeNotifier {
     _xp = (datos['xp'] as num?)?.toInt() ?? 0;
     _actualizado = (datos['actualizado'] as num?)?.toInt() ?? 0;
     _retoDiario = datos['retoDiario'] as String? ?? '';
-
+    _alias = datos['alias'] as String? ?? '';
+    _foto = datos['foto'] as String? ?? '';
+    _fotoBytes = _foto.isEmpty ? null : base64Decode(_foto); // texto → imagen
     _estudiados
       ..clear()
       ..addAll((datos['estudiados'] as List? ?? []).cast<String>());
